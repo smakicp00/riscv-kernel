@@ -1,14 +1,10 @@
-//
-// Created by marko on 20.4.22..
-//
-
 #ifndef OS1_VEZBE07_RISCV_CONTEXT_SWITCH_2_INTERRUPT_LIST_HPP
 #define OS1_VEZBE07_RISCV_CONTEXT_SWITCH_2_INTERRUPT_LIST_HPP
 
 template<typename T>
 class List
 {
-private:
+public:
     struct Elem
     {
         T *data;
@@ -16,6 +12,8 @@ private:
 
         Elem(T *data, Elem *next) : data(data), next(next) {}
     };
+
+private:
 
     Elem *head, *tail;
 
@@ -90,6 +88,35 @@ public:
         if (!tail) { return 0; }
         return tail->data;
     }
+
+    Elem* getHeadNode()         const { return head; }
+    Elem* getNextNode(Elem *e)  const { return e->next; }
+    T*    getNodeData(Elem *e)  const { return e->data; }
+
+    T* deleteNode(Elem* e)
+    {
+        if (!e || !head) return nullptr;
+        Elem* prev = nullptr;
+        Elem* curr = head;
+        while (curr && curr != e)
+        {
+            prev = curr;
+            curr = curr->next;
+        }
+        if (!curr) return nullptr;
+        if (curr == head) {
+            head = head->next;
+            if (!head) tail = nullptr;
+        } else {
+            prev->next = curr->next;
+            if (curr == tail) tail = prev;
+        }
+
+        T* ret = curr->data;
+        delete curr;
+        return ret;
+    }
+
 };
 
 #endif //OS1_VEZBE07_RISCV_CONTEXT_SWITCH_2_INTERRUPT_LIST_HPP

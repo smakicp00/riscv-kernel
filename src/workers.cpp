@@ -1,14 +1,18 @@
 #include "../lib/hw.h"
 #include "../h/tcb.hpp"
 #include "../h/print.hpp"
+#include "../h/syscall_c.hpp"
 
-void workerBodyA()
+void workerBodyA(void*)
 {
+    time_sleep(150);
+    //sem_wait(*Semaphore::sems[0]);
     for (uint64 i = 0; i < 10; i++)
     {
         printString("A: i=");
         printInteger(i);
         printString("\n");
+        //thread_exit();
         for (uint64 j = 0; j < 10000; j++)
         {
             for (uint64 k = 0; k < 30000; k++)
@@ -18,10 +22,12 @@ void workerBodyA()
 //            TCB::yield();
         }
     }
+    //sem_signal(*Semaphore::sems[0]);
 }
 
-void workerBodyB()
+void workerBodyB(void*)
 {
+    //sem_wait(*Semaphore::sems[0]);
     for (uint64 i = 0; i < 16; i++)
     {
         printString("B: i=");
@@ -36,6 +42,7 @@ void workerBodyB()
 //            TCB::yield();
         }
     }
+    //sem_signal(*Semaphore::sems[0]);
 }
 
 static uint64 fibonacci(uint64 n)
@@ -45,8 +52,9 @@ static uint64 fibonacci(uint64 n)
     return fibonacci(n - 1) + fibonacci(n - 2);
 }
 
-void workerBodyC()
+void workerBodyC(void*)
 {
+    //sem_timedwait(*Semaphore::sems[0],150);
     uint8 i = 0;
     for (; i < 3; i++)
     {
@@ -77,11 +85,13 @@ void workerBodyC()
         printInteger(i);
         printString("\n");
     }
+    //sem_signal(*Semaphore::sems[0]);
 //    TCB::yield();
 }
 
-void workerBodyD()
+void workerBodyD(void*)
 {
+    //sem_wait(*Semaphore::sems[0]);
     uint8 i = 10;
     for (; i < 13; i++)
     {
@@ -105,5 +115,6 @@ void workerBodyD()
         printInteger(i);
         printString("\n");
     }
+    //sem_signal(*Semaphore::sems[0]);
 //    TCB::yield();
 }

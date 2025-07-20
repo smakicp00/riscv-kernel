@@ -4,6 +4,9 @@
 #include "../h/print.hpp"
 #include "../h/MemoryAllocator.h"
 #include "../lib/mem.h"
+#include "../h/syscall_c.hpp"
+#include "../h/PeriodicThread.hpp"
+
 uint64 r_instruction(){
     uint64 ins;
     __asm__ volatile("mv %0, a0":"=r"(ins));
@@ -45,7 +48,33 @@ void Riscv::handleSupervisorTrap()
             w_sepc(sepc);
 			w_sstatus(sstatus);
         }
-        else{
+         else if(ins == 0x11){
+            uint64 volatile sepc = r_sepc()+4;
+			uint64 volatile sstatus = r_sstatus();
+
+            thread_t* volatile handle;
+            using Body = void (*)(void*);
+            Body volatile start_routine;
+            void* volatile arg;
+            __asm__ volatile("mv %0, a1":"=r"(handle));
+            __asm__ volatile("mv %0, a2":"=r"(start_routine));
+            __asm__ volatile("mv %0, a3":"=r"(arg));
+
+            *handle = TCB::createThread(*start_routine,arg);
+            __asm__ volatile("mv a0, %0\n" "sd a0, 10*8(fp)" :: "r"(handle): "a0", "memory");
+            w_sepc(sepc);
+			w_sstatus(sstatus);
+        }
+		else if(ins == 0x12){
+            uint64 volatile sepc = r_sepc()+4;
+			uint64 volatile sstatus = r_sstatus();
+			int ret = TCB::threadKill();
+            __asm__ volatile("mv a0, %0\n" "sd a0, 10*8(fp)" :: "r"(ret): "a0", "memory");
+            w_sepc(sepc);
+			w_sstatus(sstatus);
+            if(ret != -1){TCB::dispatch();}
+		}
+        else if(ins == 0x13){
             uint64 volatile sepc = r_sepc() + 4;
             uint64 volatile sstatus = r_sstatus();
             TCB::timeSliceCounter = 0;
@@ -54,12 +83,79 @@ void Riscv::handleSupervisorTrap()
             w_sepc(sepc);
 
         }
+        else if(ins == 0x21){
+            uint64 volatile sepc = r_sepc() + 4;
+            uint64 volatile sstatus = r_sstatus();
+            sem_t* volatile handle;
+            int volatile init;
+            __asm__ volatile("mv %0, a1":"=r"(handle));
+            __asm__ volatile("mv %0, a2":"=r"(init));
+            *handle = new Semaphore(init);
+            w_sstatus(sstatus);
+            w_sepc(sepc);
+        }
+        else if(ins == 0x23){
+            uint64 volatile sepc = r_sepc() + 4;
+            uint64 volatile sstatus = r_sstatus();
+            sem_t id;
+            __asm__ volatile("mv %0, a1":"=r"(id));
+            id->wait();
+            w_sstatus(sstatus);
+            w_sepc(sepc);
+        }
+        else if(ins == 0x24){
+            uint64 volatile sepc = r_sepc() + 4;
+            uint64 volatile sstatus = r_sstatus();
+            sem_t id;
+            __asm__ volatile("mv %0, a1":"=r"(id));
+            id->signal();
+            w_sstatus(sstatus);
+            w_sepc(sepc);
+        }
+        else if(ins == 0x25){
+            uint64 volatile sepc = r_sepc() + 4;
+            uint64 volatile sstatus = r_sstatus();
+            sem_t id;
+            time_t timeout;
+            __asm__ volatile("mv %0, a1":"=r"(id));
+            __asm__ volatile("mv %0, a2":"=r"(timeout));
+            PeriodicThread* tmp = (PeriodicThread*) TCB::running;
+            tmp->setPeriod(timeout);
+            id->wait();
+            w_sstatus(sstatus);
+            w_sepc(sepc);
+        }
+        else if(ins == 0x26){
+            uint64 volatile sepc = r_sepc() + 4;
+            uint64 volatile sstatus = r_sstatus();
+            sem_t id;
+            int i = 1;
+            __asm__ volatile("mv %0, a1":"=r"(id));
+            __asm__ volatile("mv a1, %0"::"r"(i):);
+            id->wait();
+            w_sstatus(sstatus);
+            w_sepc(sepc);
+        }
+        else if(ins == 0x31){
+            uint64 volatile sepc = r_sepc() + 4;
+            uint64 volatile sstatus = r_sstatus();
+            time_t timeout;
+            __asm__ volatile("mv %0, a1":"=r"(timeout));
+            PeriodicThread* tmp = (PeriodicThread*) TCB::running;
+            tmp->setPeriod(timeout);
+            PeriodicThread::put();
+            w_sstatus(sstatus);
+            w_sepc(sepc);
+        }
+
     }
     else if (scause == 0x8000000000000001UL)
     {
         // interrupt: yes; cause code: supervisor software interrupt (CLINT; machine timer interrupt)
         mc_sip(SIP_SSIP);
         TCB::timeSliceCounter++;
+        Semaphore::check();
+        PeriodicThread::check();
         if (TCB::timeSliceCounter >= TCB::running->getTimeSlice())
         {
             uint64 volatile sepc = r_sepc();
@@ -68,7 +164,6 @@ void Riscv::handleSupervisorTrap()
             TCB::dispatch();
             w_sstatus(sstatus);
             w_sepc(sepc);
-
         }
     }
     else if (scause == 0x8000000000000009UL)
