@@ -30,7 +30,6 @@ void PeriodicThread::check(){
         Scheduler::put(thread);
         sleepingThreadsQueue.deleteNode(cur);
     }
-
     cur = next;
     }
 }

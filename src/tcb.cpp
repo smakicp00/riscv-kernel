@@ -1,6 +1,5 @@
 #include "../h/tcb.hpp"
 #include "../h/riscv.hpp"
-
 TCB *TCB::running = nullptr;
 
 uint64 TCB::timeSliceCounter = 0;
@@ -42,4 +41,21 @@ int TCB::threadKill(){
         running->setFinished(true);
         return 1;
     }
+}
+
+void TCB::create_getc(){
+    TCB *tmp;
+    thread_create(&tmp, getcBody,nullptr);
+    TCB *old = running;
+    Scheduler::put(old);
+    running = tmp;
+    if(old == nullptr){
+        TCB::Context* addr = &running->context;
+        __asm__ volatile("ld ra, 0 * 8(%0)"::"r"(addr));
+        __asm__ volatile("ld sp, 1 * 8(%0)"::"r"(addr));
+        return;
+    }
+
+
+    TCB::contextSwitch(&old->context, &running->context);
 }

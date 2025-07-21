@@ -6,6 +6,8 @@
 #include "../lib/mem.h"
 #include "../h/syscall_c.hpp"
 #include "../h/PeriodicThread.hpp"
+#include "../h/Console.hpp"
+
 
 uint64 r_instruction(){
     uint64 ins;
@@ -147,6 +149,46 @@ void Riscv::handleSupervisorTrap()
             w_sstatus(sstatus);
             w_sepc(sepc);
         }
+        else if(ins == 0x41){
+            uint64 volatile sepc = r_sepc() + 4;
+            uint64 volatile sstatus = r_sstatus();
+            char c;
+            __asm__ volatile("mv %0, a1":"=r"(c));
+            Console::putc(c);
+            w_sstatus(sstatus);
+            w_sepc(sepc);
+        }
+        else if(ins == 0x42){
+            uint64 volatile sepc = r_sepc() + 4;
+            uint64 volatile sstatus = r_sstatus();
+            Riscv::ms_sstatus(SSTATUS_SIE);
+            Riscv::mc_sie(SIP_SSIP);
+            Riscv::mc_sie(SIP_STIP);
+            Riscv::ms_sie(SIP_SEIP);
+            TCB::create_getc();
+
+            w_sstatus(sstatus);
+            w_sepc(sepc);
+            //Riscv::ms_sstatus(SSTATUS_SIE);
+        }
+        else if(ins == 0x51){
+            uint64 volatile sepc = r_sepc() + 4;
+            uint64 volatile sstatus = r_sstatus();
+            const char* string;
+            __asm__ volatile("mv %0, a1":"=r"(string));
+            printString(string);
+            w_sstatus(sstatus);
+            w_sepc(sepc);
+        }
+        else if(ins == 0x52){
+            uint64 volatile sepc = r_sepc() + 4;
+            uint64 volatile sstatus = r_sstatus();
+            uint64 string;
+            __asm__ volatile("mv %0, a1":"=r"(string));
+            printInteger(string);
+            w_sstatus(sstatus);
+            w_sepc(sepc);
+        }
 
     }
     else if (scause == 0x8000000000000001UL)
@@ -169,6 +211,25 @@ void Riscv::handleSupervisorTrap()
     else if (scause == 0x8000000000000009UL)
     {
         // interrupt: yes; cause code: supervisor external interrupt (PLIC; could be keyboard)
+        //volatile uint64 *uart =  (volatile uint64*)CONSOLE_STATUS;
+        volatile uint64 *uart1 =  (volatile uint64*)CONSOLE_TX_DATA;
+        //volatile uint64 *uart2 =  (volatile uint64*)CONSOLE_RX_DATA;
+        uint64 a = *uart1;
+        uint64 x;
+        __asm__ volatile("mv %0, a1":"=r"(x));
+        //putc(a);
+        if (x == 0x10){
+
+            putc(a);
+			TCB *old = TCB::running;
+    		TCB::running = Scheduler::get();
+			TCB::contextSwitch(&old->context, &TCB::running->context);
+
+			delete old;
+            Riscv::ms_sie(SIP_SSIP);
+            Riscv::ms_sie(SIP_STIP);
+        }
+
         console_handler();
     }
     else

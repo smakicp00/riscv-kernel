@@ -1,8 +1,9 @@
 #ifndef OS1_VEZBE07_RISCV_CONTEXT_SWITCH_2_INTERRUPT_TCB_HPP
 #define OS1_VEZBE07_RISCV_CONTEXT_SWITCH_2_INTERRUPT_TCB_HPP
-
+#include "../h/Console.hpp"
 #include "../lib/hw.h"
 #include "scheduler.hpp"
+#include "../h/syscall_c.hpp"
 
 // Thread Control Block
 class TCB
@@ -27,7 +28,7 @@ public:
     static TCB *running;
 
     static int threadKill();
-
+    static void create_getc();
 protected:
     TCB(Body body, uint64 timeSlice, void* arg) :
             body(body),

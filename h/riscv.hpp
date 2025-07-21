@@ -51,11 +51,20 @@ public:
     // mask clear register sip
     static void mc_sip(uint64 mask);
 
+    static void ms_sie(uint64 mask);
+
+    // mask clear register sip
+    static void mc_sie(uint64 mask);
     // read register sip
     static uint64 r_sip();
 
     // write register sip
     static void w_sip(uint64 sip);
+
+    static uint64 r_sie();
+
+    // write register sip
+    static void w_sie(uint64 sie);
 
     enum BitMaskSstatus
     {
@@ -63,6 +72,8 @@ public:
         SSTATUS_SPIE = (1 << 5),
         SSTATUS_SPP = (1 << 8),
     };
+
+
 
     // mask set register sstatus
     static void ms_sstatus(uint64 mask);
@@ -143,6 +154,15 @@ inline void Riscv::mc_sip(uint64 mask)
 {
     __asm__ volatile ("csrc sip, %[mask]" : : [mask] "r"(mask));
 }
+inline void Riscv::ms_sie(uint64 mask)
+{
+    __asm__ volatile ("csrs sie, %[mask]" : : [mask] "r"(mask));
+}
+
+inline void Riscv::mc_sie(uint64 mask)
+{
+    __asm__ volatile ("csrc sie, %[mask]" : : [mask] "r"(mask));
+}
 
 inline uint64 Riscv::r_sip()
 {
@@ -155,7 +175,17 @@ inline void Riscv::w_sip(uint64 sip)
 {
     __asm__ volatile ("csrw sip, %[sip]" : : [sip] "r"(sip));
 }
+inline uint64 Riscv::r_sie()
+{
+    uint64 volatile sie;
+    __asm__ volatile ("csrr %[sie], sie" : [sie] "=r"(sie));
+    return sie;
+}
 
+inline void Riscv::w_sie(uint64 sie)
+{
+    __asm__ volatile ("csrw sie, %[sie]" : : [sie] "r"(sie));
+}
 inline void Riscv::ms_sstatus(uint64 mask)
 {
     __asm__ volatile ("csrs sstatus, %[mask]" : : [mask] "r"(mask));

@@ -8,7 +8,8 @@ void printString(char const *string)
     Riscv::mc_sstatus(Riscv::SSTATUS_SIE);
     while (*string != '\0')
     {
-        __putc(*string);
+        //__putc(*string);
+        putc(*string);
         string++;
     }
     Riscv::ms_sstatus(sstatus & Riscv::SSTATUS_SIE ? Riscv::SSTATUS_SIE : 0);
@@ -41,6 +42,6 @@ void printInteger(uint64 integer)
     if (neg)
         buf[i++] = '-';
 
-    while (--i >= 0) { __putc(buf[i]); }
+    while (--i >= 0) { putc(buf[i]);}//__putc(buf[i]); }
     Riscv::ms_sstatus(sstatus & Riscv::SSTATUS_SIE ? Riscv::SSTATUS_SIE : 0);
 }

@@ -92,3 +92,21 @@ int time_sleep(time_t t){
     return 1;
 }
 
+void putc(char c){
+    __asm__ volatile("mv a1, %0"::"r"(c):);
+    call(0x41);
+}
+
+int getc(){
+    call(0x42);
+    return 1;
+}
+
+void print_string(char const *string){
+    __asm__ volatile("mv a1, %0"::"r"(string):);
+    call(0x51);
+}
+void print_int(uint64 string){
+    __asm__ volatile("mv a1, %0"::"r"(string):);
+    call(0x52);
+}

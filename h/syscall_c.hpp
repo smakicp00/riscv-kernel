@@ -47,4 +47,14 @@ int sem_trywait(sem_t id);
 
 int time_sleep(time_t t);
 
+const int EOF = -1;
+
+int getc();
+
+void putc(char c);
+
+void print_string(char const *string);
+
+void print_int(uint64 string);
+
 #endif
